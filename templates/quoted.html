@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Quote
+{% endblock %}
+
+{% block main %}
+    <div>
+        A share of
+        {{ quo_info["name"] }} ({{ quo_info["symbol"] }})
+        costs
+        {{ quo_info["price"] | usd }}
+    </div>
+{% endblock %}
