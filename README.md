@@ -1,4 +1,4 @@
-# My-CS50-finance
+# My-CS50-finance-2022
 
 I practiced my Flask tutorials by finishing CS50's problem set<br>
 Link to the assignment: https://cs50.harvard.edu/x/2022/psets/9/finance/
