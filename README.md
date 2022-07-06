@@ -9,11 +9,11 @@ for stocks’ prices.
 
 ## Configuring
 Before getting started on this assignment, we’ll need to register for an API key in order to be able to query IEX’s data. To do so, follow these steps:
-- Visit iexcloud.io/cloud-login#/register/.
+- Visit [iexcloud.io/cloud-login#/register/](https://iexcloud.io/cloud-login#/register/).
 - Select the “Individual” account type, then enter your name, email address, and a password, and click “Create account”.
 - Once registered, scroll down to “Get started for free” and click “Select Start plan” to choose the free plan.
 - Once you’ve confirmed your account via a confirmation email, visit https://iexcloud.io/console/tokens.
-- Copy the key that appears under the Token column (it should begin with pk_).
+- Copy the key that appears under the <i>Token</i> column (it should begin with <code>pk_</code>).
 - In your terminal window, execute:
 <pre>$ export API_KEY=value</pre>
 
