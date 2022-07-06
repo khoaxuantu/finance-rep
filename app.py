@@ -248,7 +248,7 @@ def register():
 
     # User reached rout via "POST"
     if request.method == "POST":
-        # exclude_char = "[@_!#$%^&*()<>?/\|}{~:]"
+        exclude_char = "[@_!#$%^&*()<>?/\|}{~:]"
 
         # Submit the user input
         user = request.form.get("username")
@@ -259,9 +259,9 @@ def register():
         if not user:
             return apology("must provide username", 400)
 
-        # for char in user:
-        #     if char in exclude_char:
-        #         return apology(f"{char} is not allowed for username", 403)
+        for char in user:
+            if char in exclude_char:
+                return apology(f"{char} is not allowed for username", 400)
 
         # Ensure the password input is not blank or matched
         if not pwd:
