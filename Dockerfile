@@ -10,3 +10,6 @@ COPY . /usr/src/app
 
 ENV API_KEY=${IEXCLOUD_TOKEN}
 RUN export API_KEY=${API_KEY}
+
+EXPOSE $PORT
+CMD gunicorn --workers=4 --bind 0.0.0.0:$PORT app:app
