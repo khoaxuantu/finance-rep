@@ -1,0 +1,11 @@
+# ignore python virtual environment
+venv
+__pycache__
+
+# ignore setting
+.vscode
+
+# ignore sessions
+flask_session
+
+docker-compose.yml
