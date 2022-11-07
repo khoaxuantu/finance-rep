@@ -382,7 +382,7 @@ def changePassword():
                     generate_password_hash(pwd_to_change), session["user_id"])
 
         # Forget any id
-        session.clear
+        session.clear()
 
         return redirect("/login")
 
