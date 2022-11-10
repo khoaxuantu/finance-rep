@@ -31,3 +31,13 @@ nav .navbar-brand .green
     width: 0;
     height: 0;
 }
+
+a 
+{
+    text-decoration: none;
+}
+
+a:hover
+{
+    text-decoration: underline;
+}
