@@ -9,3 +9,4 @@ __pycache__
 flask_session
 
 docker-compose.yml
+finance.db
