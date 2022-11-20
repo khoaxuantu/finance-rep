@@ -151,7 +151,7 @@ def buy():
                     VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'))",
                     session["user_id"], symb_lookup["symbol"], shares, symb_lookup["price"], 'Bought')
 
-        flash("Buy successfully")
+        flash("Buy successfully!")
         return redirect("/")
 
     # User reached route via GET
@@ -165,7 +165,9 @@ def history():
     """Show history of transactions"""
 
     # Query the transaction log
-    trans_log = db.execute("SELECT * FROM transaction_log WHERE userid = ?", session["user_id"])
+    trans_log = db.execute("SELECT * FROM transaction_log WHERE userid = ?\
+                            ORDER BY time DESC", session["user_id"])
+    # app.logger.debug(trans_log)
 
     return render_template("history.html", transactions=trans_log)
 
@@ -199,6 +201,7 @@ def login():
         session["user_id"] = rows[0]["id"]
 
         # Redirect user to home page
+        flash("Log in successfully!")
         return redirect("/")
 
     # User reached route via GET (as by clicking a link or via redirect)
@@ -283,6 +286,7 @@ def register():
         id_query = db.execute("SELECT id FROM users WHERE username = ?", user)
         db.execute("INSERT INTO stocks_info (userid) VALUES (?)", id_query[0]["id"])
 
+        flash("Register successfully!")
         return redirect("/login")
 
     # User reached route via "GET"
@@ -350,7 +354,7 @@ def sell():
                     VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'))",
                     session["user_id"], symb_info["symbol"], shares_to_sell, symb_info["price"], 'Sold')
 
-        flash("Sell successfully")
+        flash("Sell successfully!")
         return redirect("/")
 
     # User reached rout via GET
@@ -384,10 +388,11 @@ def changePassword():
         # Forget any id
         session.clear()
 
+        flash("Password has been changed successfully!")
         return redirect("/login")
 
     else:
-        return render_template("pwChangeUI.html")
+        return render_template("pwChangeUI.html", changePw=True)
 
 
 @app.route("/addCash", methods=["POST"])
