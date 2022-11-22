@@ -62,3 +62,8 @@ def lookup(symbol):
 def usd(value):
     """Format value as USD."""
     return f"${value:,.2f}"
+
+
+def timeformat(value):
+    """Format timestamp"""
+    return f"{value.year}-{value.month}-{value.day} {value.hour}:{value.minute}:{value.second} UTC"
