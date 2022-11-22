@@ -9,7 +9,7 @@ from tempfile import mkdtemp
 from sqlalchemy import Float, false, null, true
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from helpers import apology, login_required, lookup, usd
+from helpers import apology, login_required, lookup, usd, timeformat
 from builder import Users
 
 # Configure application
@@ -20,6 +20,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Custom filter
 app.jinja_env.filters["usd"] = usd
+app.jinja_env.filters["timeformat"] = timeformat
 
 # Configure session to use filesystem (instead of signed cookies)
 app.config["SESSION_PERMANENT"] = False
@@ -34,6 +35,7 @@ cred = credentials.Certificate('firestorekey.json')
 default_app = initialize_app(cred)
 db = firestore.client()
 users_ref = db.collection('users')
+transaction = db.transaction()
 
 # Make sure API key is set
 if not os.environ.get("API_KEY"):
@@ -49,17 +51,61 @@ def after_request(response):
     return response
 
 
+@firestore.transactional
+def update_stocks(transaction, user_ref, amount, method, symbol, shares):
+    """Update user's stocks via transaction"""
+    snapshot = user_ref.get(transaction=transaction)
+    stock_ref = user_ref.collection('stocks').document(symbol)
+    stock_snapshot = stock_ref.get(transaction=transaction)
+    if method == '+':
+        newCash = snapshot.get('cash') - amount
+        newShares = stock_snapshot.get('shares') + shares
+    else:
+        newCash = snapshot.get('cash') + amount
+        newShares = stock_snapshot.get('shares') - shares
+    # Update cash and share amounts
+    transaction.update(user_ref, {
+        "cash": newCash
+    })
+    transaction.update(stock_ref, {
+        "shares": newShares
+    })
+
+
+@firestore.transactional
+def update_logs(transaction, user_ref, method, price, symbol, shares):
+    """Update user's transaction logs via firestore transaction"""
+    # Update transaction num
+    snapshot = user_ref.get(transaction=transaction)
+    newTransactionNum = snapshot.get('transaction_num') + 1
+    transaction.update(user_ref, {
+        "transaction_num": newTransactionNum
+    })
+    # Update new log, set the new transaction num as a new log's id
+    logs_ref = user_ref.collection('transaction_log').document(str(newTransactionNum))
+    logs_ref.set({
+        "method": method,
+        "price": price,
+        "symbol": symbol,
+        "process_shares": shares,
+        "time": firestore.SERVER_TIMESTAMP
+    })
+
+
 @app.route("/")
 @login_required
 def index():
     """Show portfolio of stocks"""
     # Query full user's stocks
-    user = session["user_id"]
-    userQuery = users_ref.document(user).get()
-    userStocksInfo = userQuery.get('stocks')
+    user_ref = users_ref.document(session["user_id"])
+    userQuery = user_ref.get()
     cash = userQuery.get('cash')
+    docs = user_ref.collection('stocks').stream()
+    userStocksInfo = []
+    for doc in docs:
+        userStocksInfo.append(doc.to_dict())
+    # app.logger.debug(userStocksInfo[0])
     
-    have_stocks = False
     # Initialize holding symbol price and holding value
     # userStockVal {
     #   symbol: {
@@ -68,6 +114,7 @@ def index():
     #   }
     # }
     # total[]: total value (shares * price["symbol"])
+    have_stocks = False
     userStockVal = {}
     total = []
 
@@ -95,6 +142,7 @@ def buy():
 
     # User reached route via POST
     if request.method == "POST":
+        user_ref = users_ref.document(session["user_id"])
         # Collect input symbol
         symb = request.form.get("symbol").upper().strip()
         symb_lookup = lookup(symb)
@@ -103,7 +151,6 @@ def buy():
         input_shares = request.form.get("shares")
         if not input_shares or not input_shares.isnumeric():
             return apology("invalid amount of shares", 400)
-
         shares = float(input_shares)
 
         # Validate symbol
@@ -118,46 +165,35 @@ def buy():
         expect_spend = shares * symb_lookup["price"]
 
         # Query how much cash the user has
-        avail_cash = db.execute("SELECT cash FROM users WHERE id = ?", session["user_id"])
+        avail_cash = user_ref.get().get('cash')
 
         # Apology if user does not has enough money
-        if avail_cash[0]["cash"] < expect_spend:
+        if avail_cash < expect_spend:
             return apology("cannot afford to buy", 400)
+        else:
+            avail_cash -= expect_spend
 
         # Update the shares amount after buying
         # Check if the user buy a symbol for the first time
-        shares_stored = db.execute("SELECT * FROM stocks_info \
-                                    WHERE userid = ? AND symbol = ?",
-                                    session["user_id"], symb_lookup["symbol"])
         # Insert the new amount of shares into the database
-        if len(shares_stored) != 1:
-            db.execute("INSERT INTO stocks_info (userid, compName, symbol, shares)\
-                        VALUES (?, ?, ?, ?)",
-                        session["user_id"], symb_lookup["name"], symb_lookup["symbol"], shares)
+        stock_ref = user_ref.collection('stocks').document(symb)
+        stock_doc = stock_ref.get()
+        if not stock_doc.exists:
+            user_ref.update({"cash": avail_cash})
+            stock_ref.set({
+                "name": symb_lookup["name"],
+                "symbol": symb_lookup["symbol"],
+                "shares": shares
+            })
 
         # Update the new amount of shares into the database
         else:
-            # Query the amount of holding shares
-            holding_shares = db.execute("SELECT shares FROM stocks_info\
-                                         WHERE userid = ? AND symbol = ?",
-                                         session["user_id"], symb_lookup["symbol"])
-
-            db.execute("UPDATE stocks_info \
-                        SET shares = ?\
-                        WHERE userid = ? AND symbol = ?",
-                        holding_shares[0]["shares"] + shares,
-                        session["user_id"], symb_lookup["symbol"])
-
-        # Deduct the cash in user's account
-        modify_cash = avail_cash[0]["cash"] - expect_spend
-        db.execute("UPDATE users\
-                    SET cash = ?\
-                    WHERE id = ?", modify_cash, session["user_id"])
+            update_stocks(transaction, user_ref, expect_spend, '+',
+                          symb_lookup["symbol"], shares)
 
         # Update transaction log
-        db.execute("INSERT INTO transaction_log (userid, symbol, shares_in_out, price, method, time)\
-                    VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'))",
-                    session["user_id"], symb_lookup["symbol"], shares, symb_lookup["price"], 'Bought')
+        update_logs(transaction, user_ref, "Bought", symb_lookup["price"],
+                    symb_lookup["symbol"], shares)
 
         flash("Buy successfully!")
         return redirect("/")
@@ -177,10 +213,13 @@ def history():
     trans_num = userQuery.get('transaction_num')
     # Query the transaction log
     if trans_num != 0:
-        trans_log_ref = users_ref.document(session["user_id"] + '/transaction_logs')
+        # log_path = session["user_id"] + '/transaction_log'
+        trans_log_ref = users_ref.document(session["user_id"]).collection('transaction_log')
         query = trans_log_ref.order_by("time", direction=firestore.Query.DESCENDING)
-        trans_log = query.stream()
-    # app.logger.debug(trans_log)
+        trans_log_docs = query.stream()
+    for doc in trans_log_docs:
+        trans_log.append(doc.to_dict())
+    # app.logger.debug(trans_log[0])
 
     return render_template("history.html", transactions=trans_log)
 
