@@ -54,38 +54,39 @@ def after_request(response):
 def index():
     """Show portfolio of stocks"""
     # Query full user's stocks
-    user_stocksInfo = db.execute("SELECT symbol, compName, shares \
-                                  FROM stocks_info\
-                                  WHERE symbol IS NOT NULL\
-                                  AND compName IS NOT NULL\
-                                  AND userid = ?", session["user_id"])
-    user_cash = db.execute("SELECT cash FROM users WHERE id = ?", session["user_id"])
-
+    user = session["user_id"]
+    app.logger.debug(user)
+    userQuery = users_ref.document(user).get()
+    userStocksInfo = userQuery.get('stocks')
+    cash = userQuery.get('cash')
+    
     have_stocks = False
     # Initialize holding symbol price and holding value
-    # price {symbol: price}
-    # hold {symbol: total value (shares * price["symbol"])}
-    # total [total value (shares * price["symbol"])]
-    price = {}
-    hold = {}
+    # userStockVal {
+    #   symbol: {
+    #       price: price
+    #       hold: total value (shares * price["symbol"])
+    #   }
+    # }
+    # total[]: total value (shares * price["symbol"])
+    userStockVal = {}
     total = []
-    # Query the symbols which the user holds
-    symbols = db.execute("SELECT symbol, shares FROM stocks_info WHERE userid = ?\
-                          AND symbol IS NOT NULL AND shares IS NOT NULL", session["user_id"])
 
-    if len(symbols) != 0:
+    if len(userStocksInfo) != 0:
         have_stocks = True
-        for symbol in symbols:
-            sym_info = lookup(symbol["symbol"])
-            if not sym_info:
+        for symbol in userStocksInfo:
+            newDict = {}
+            symbInfo = lookup(symbol["symbol"])
+            if not symbInfo:
                 break
-            price[symbol["symbol"]] = sym_info["price"]
-            hold[symbol["symbol"]] = price[symbol["symbol"]] * int(symbol["shares"])
+            newDict["price"]= symbInfo["price"]
+            newDict["hold"] = symbol["shares"] * symbInfo["price"]
+            total.append(newDict["hold"])
 
-    total = hold.values()
+            userStockVal[symbol["symbol"]] = newDict
 
-    return render_template("index.html", user=user_stocksInfo, price=price, cash=user_cash,
-                            have_stocks=have_stocks, hold=hold, total=total)
+    return render_template("index.html", user=userStocksInfo, cash=cash, total=total,
+                            have_stocks=have_stocks, value=userStockVal)
 
 
 @app.route("/buy", methods=["GET", "POST"])
