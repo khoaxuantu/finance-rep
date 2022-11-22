@@ -471,12 +471,11 @@ def addCash():
     if not cash_added > 0:
         return apology("Invalid amount of cash", 400)
 
-    # Query available cash
-    avail_cash = db.execute("SELECT cash FROM users WHERE id = ?", session["user_id"])
+    # Get an user ref
+    user_ref = users_ref.document(session["user_id"])
 
     # Update additional to database
-    return_cash = cash_added + avail_cash[0]["cash"]
-    db.execute("UPDATE users SET cash = ? WHERE id = ?", return_cash, session["user_id"])
+    user_ref.update({"cash": firestore.Increment(cash_added)})
 
     return redirect("/")
 
