@@ -4,11 +4,13 @@ import os
 from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session
 from flask_session import Session
+from firebase_admin import credentials, firestore, initialize_app
 from tempfile import mkdtemp
 from sqlalchemy import Float, false, null, true
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from helpers import apology, login_required, lookup, usd
+from builder import Users
 
 # Configure application
 app = Flask(__name__)
@@ -25,7 +27,13 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 # Configure CS50 Library to use SQLite database
-db = SQL("sqlite:///finance.db")
+# db = SQL("sqlite:///finance.db")
+
+# Initialize Firestore DB
+cred = credentials.Certificate('firestorekey.json')
+default_app = initialize_app(cred)
+db = firestore.client()
+users_ref = db.collection('users')
 
 # Make sure API key is set
 if not os.environ.get("API_KEY"):
@@ -53,7 +61,7 @@ def index():
                                   AND userid = ?", session["user_id"])
     user_cash = db.execute("SELECT cash FROM users WHERE id = ?", session["user_id"])
 
-    have_stocks = false
+    have_stocks = False
     # Initialize holding symbol price and holding value
     # price {symbol: price}
     # hold {symbol: total value (shares * price["symbol"])}
@@ -66,7 +74,7 @@ def index():
                           AND symbol IS NOT NULL AND shares IS NOT NULL", session["user_id"])
 
     if len(symbols) != 0:
-        have_stocks = true
+        have_stocks = True
         for symbol in symbols:
             sym_info = lookup(symbol["symbol"])
             if not sym_info:
@@ -182,23 +190,23 @@ def login():
     # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
 
-        # Ensure username was submitted
-        if not request.form.get("username"):
-            return apology("must provide username", 403)
-
-        # Ensure password was submitted
-        elif not request.form.get("password"):
-            return apology("must provide password", 403)
+        user = request.form.get("username")
+        pw = request.form.get("password")
+        # Ensure username and password was submitted
+        if not user:
+            return apology("must provide username", 400)
+        elif not pw:
+            return apology("must provide password", 400)
 
         # Query database for username
-        rows = db.execute("SELECT * FROM users WHERE username = ?", request.form.get("username"))
-
+        userQuery = users_ref.document(user).get()
+        doc = userQuery.to_dict()
         # Ensure username exists and password is correct
-        if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
-            return apology("invalid username and/or password", 403)
+        if not userQuery.exists or not check_password_hash(doc["password"], pw):
+            return apology("invalid username and/or password", 400)
 
         # Remember which user has logged in
-        session["user_id"] = rows[0]["id"]
+        session["user_id"] = user
 
         # Redirect user to home page
         flash("Log in successfully!")
@@ -275,16 +283,16 @@ def register():
             return apology("passwords do not match", 400)
 
         # Query the database for username
-        rows = db.execute("SELECT * FROM users WHERE username = ?", user)
-
-        if len(rows) == 1:
+        userQuery = users_ref.document(user).get()
+        if userQuery.exists:
             return apology("username has already existed", 400)
 
         # Insert the new user into users database
-        db.execute("INSERT INTO users (username, hash) VALUES (?, ?)", user,
-                    generate_password_hash(pwd))
-        id_query = db.execute("SELECT id FROM users WHERE username = ?", user)
-        db.execute("INSERT INTO stocks_info (userid) VALUES (?)", id_query[0]["id"])
+        newUser = Users()
+        newUser.setUsername(user)
+        newUser.setPw(generate_password_hash(pwd))
+
+        users_ref.document(user).set(newUser.to_dict())
 
         flash("Register successfully!")
         return redirect("/login")
