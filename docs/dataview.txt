@@ -1,5 +1,4 @@
 users:
-    - id:
     - username:
     - password(hashed):
     - cash:
@@ -8,12 +7,13 @@ users:
 
 stocks:
     - symbol:
-        - name:
-        - amount:
+    - name:
+    - amount:
 
 transaction logs:
     - time:
     - method: Buy/Sell
-    - stock symbols:
-    - stock names:
-    - amount:
+    - stock:
+        + symbol:
+        + name:
+    - process amount:
