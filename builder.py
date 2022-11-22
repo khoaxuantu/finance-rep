@@ -10,7 +10,6 @@ class Users(object):
     """
     def __init__(self):
         self.cash = 10000
-        self.stocks = {}
     
     def setUsername(self, username=None):
         self.username = username
@@ -24,7 +23,6 @@ class Users(object):
                 "username": self.username,
                 "password": self.pw,
                 "cash": self.cash,
-                "stocks": self.stocks,
                 "transaction_num": 0
             }
         except:
