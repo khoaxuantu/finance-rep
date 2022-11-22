@@ -53,7 +53,15 @@ def after_request(response):
 
 @firestore.transactional
 def update_stocks(transaction, user_ref, amount, method, symbol, shares):
-    """Update user's stocks via transaction"""
+    """Update user's stocks via transaction
+    
+    :param obj transaction: db.transaction()
+    :param obj user_ref: A reference to document 'user_id' in the collection 'users'
+    :param float amount: An amount money for processing
+    :param string method: '+' or '-'
+    :param string symbol: A symbol of a stock
+    :param int shares: An amount of shares for processing
+    """
     snapshot = user_ref.get(transaction=transaction)
     stock_ref = user_ref.collection('stocks').document(symbol)
     stock_snapshot = stock_ref.get(transaction=transaction)
@@ -67,14 +75,25 @@ def update_stocks(transaction, user_ref, amount, method, symbol, shares):
     transaction.update(user_ref, {
         "cash": newCash
     })
-    transaction.update(stock_ref, {
-        "shares": newShares
-    })
+    if newShares > 0:
+        transaction.update(stock_ref, {
+            "shares": newShares
+        })
+        stock_ref = None
+    return stock_ref
 
 
 @firestore.transactional
 def update_logs(transaction, user_ref, method, price, symbol, shares):
-    """Update user's transaction logs via firestore transaction"""
+    """Update user's transaction logs via firestore transaction
+    
+    :param obj transaction: db.transaction()
+    :param obj user_ref: A reference to document 'user_id' in the collection 'users'
+    :param string method: "Bought" or "Sold"
+    :param float price: The price per shares of a stock
+    :param string symbol: A symbol of a stock
+    :param int shares: An amount of shares for processing
+    """
     # Update transaction num
     snapshot = user_ref.get(transaction=transaction)
     newTransactionNum = snapshot.get('transaction_num') + 1
@@ -350,10 +369,14 @@ def register():
 @login_required
 def sell():
     """Sell shares of stock"""
+    # Get user ref and stocks ref
+    user_ref = users_ref.document(session["user_id"])
+    stocks_ref = user_ref.collection('stocks')
     # Query available symbols
-    symb_query = db.execute("SELECT symbol, shares FROM stocks_info\
-                             WHERE symbol IS NOT NULL\
-                             AND userid = ?", session["user_id"])
+    stock_dicts = {}
+    stocks_query = stocks_ref.stream()
+    for stock in stocks_query:
+        stock_dicts[stock.id] = stock.to_dict()
 
     # User reached route via POST
     if request.method == "POST":
@@ -361,57 +384,45 @@ def sell():
         # Get a selected symbol
         get_symbol = request.form.get("symbol")
         if not get_symbol:
-            return apology("invalid symbol", 403)
+            return apology("invalid symbol", 400)
         else:
             symb_info = lookup(get_symbol)
 
         # Get an amount of shares that the users want to sell
         input_shares = request.form.get("shares")
         if not input_shares or not input_shares.isnumeric():
-            return apology("invalid amount of share", 403)
+            return apology("invalid amount of share", 400)
 
         shares_to_sell = float(input_shares)
         if not shares_to_sell > 0:
-            return apology("invalid amount of share", 403)
+            return apology("invalid amount of share", 400)
 
         # Check if the users have enough shares to sell
-        user_shares = db.execute("SELECT shares FROM stocks_info\
-                                  WHERE symbol = ?\
-                                  AND userid = ?", get_symbol, session["user_id"])
-        if user_shares[0]["shares"] < shares_to_sell:
+        user_shares = stock_dicts[get_symbol]["shares"]
+        if user_shares < shares_to_sell:
             return apology("not enough shares to sell", 400)
 
-        # Query the cash amount of the users:
-        recent_cash = db.execute("SELECT cash FROM users\
-                                  WHERE id = ?", session["user_id"])
+        # # Query the cash amount of the users:
+        # recent_cash = user_ref.get('cash')
 
-        # Update the cash after selling
-        cash_after_sell = recent_cash[0]["cash"] + (shares_to_sell * symb_info["price"])
-        # Update users database
-        db.execute("UPDATE users\
-                    SET cash = ?\
-                    WHERE id = ?", cash_after_sell, session["user_id"])
-        # Update stocks_info database
-        if (user_shares[0]["shares"] - shares_to_sell) == 0:
-            db.execute("DELETE FROM stocks_info WHERE userid = ? AND symbol = ?", session["user_id"], get_symbol)
-
-        else:
-            db.execute("UPDATE stocks_info\
-                        SET shares = ?\
-                        WHERE userid = ? AND symbol = ?",
-                        user_shares[0]["shares"] - shares_to_sell, session["user_id"], get_symbol)
+        # # Update the cash after selling
+        # cash_after_sell = recent_cash + (shares_to_sell * symb_info["price"])
+        # Update users and stocks info database
+        stock_ref = update_stocks(transaction, user_ref, shares_to_sell * symb_info["price"],
+                                  '-', get_symbol, shares_to_sell)
+        if stock_ref is not None:
+            stock_ref.delete()
 
         # Update transaction log
-        db.execute("INSERT INTO transaction_log (userid, symbol, shares_in_out, price, method, time)\
-                    VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'))",
-                    session["user_id"], symb_info["symbol"], shares_to_sell, symb_info["price"], 'Sold')
+        update_logs(transaction, user_ref, 'Sold', symb_info["price"], get_symbol,
+                    shares_to_sell)
 
         flash("Sell successfully!")
         return redirect("/")
 
     # User reached rout via GET
     else:
-        return render_template("sell.html", symbols=symb_query)
+        return render_template("sell.html", symbols=stock_dicts)
 
 
 @app.route("/changePassword", methods=["GET", "POST"])
@@ -426,12 +437,12 @@ def changePassword():
         rows = db.execute("SELECT * FROM users WHERE id = ?", session["user_id"])
 
         if not current_pwd:
-            return apology("Must provide password", 404)
+            return apology("Must provide password", 400)
         elif not check_password_hash(rows[0]["hash"], current_pwd):
-            return apology("invalid password", 403)
+            return apology("invalid password", 400)
 
         if not pwd_to_change:
-            return apology("password to change cannot be blank", 404)
+            return apology("password to change cannot be blank", 400)
 
         # Update new password
         db.execute("UPDATE users SET hash = ? WHERE id = ?",
@@ -455,7 +466,7 @@ def addCash():
     # Get input cash
     cash_added = float(request.form.get("cash"))
     if not cash_added > 0:
-        return apology("Invalid amount of cash", 403)
+        return apology("Invalid amount of cash", 400)
 
     # Query available cash
     avail_cash = db.execute("SELECT cash FROM users WHERE id = ?", session["user_id"])
