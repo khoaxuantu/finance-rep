@@ -429,24 +429,27 @@ def sell():
 @login_required
 def changePassword():
     """Change password"""
+    user_ref = users_ref.document(session["user_id"])
+    user = user_ref.get()
     if request.method == "POST":
 
         # Get and validate the input password
         current_pwd = request.form.get("password")
         pwd_to_change = request.form.get("change_password")
-        rows = db.execute("SELECT * FROM users WHERE id = ?", session["user_id"])
+        stored_pwd = user.get('password')
 
         if not current_pwd:
             return apology("Must provide password", 400)
-        elif not check_password_hash(rows[0]["hash"], current_pwd):
+        elif not check_password_hash(stored_pwd, current_pwd):
             return apology("invalid password", 400)
 
         if not pwd_to_change:
             return apology("password to change cannot be blank", 400)
 
         # Update new password
-        db.execute("UPDATE users SET hash = ? WHERE id = ?",
-                    generate_password_hash(pwd_to_change), session["user_id"])
+        user_ref.update({
+            "password": generate_password_hash(pwd_to_change)
+        })
 
         # Forget any id
         session.clear()
