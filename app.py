@@ -55,7 +55,6 @@ def index():
     """Show portfolio of stocks"""
     # Query full user's stocks
     user = session["user_id"]
-    app.logger.debug(user)
     userQuery = users_ref.document(user).get()
     userStocksInfo = userQuery.get('stocks')
     cash = userQuery.get('cash')
@@ -173,9 +172,14 @@ def buy():
 def history():
     """Show history of transactions"""
 
+    trans_log = []
+    userQuery = users_ref.document(session["user_id"]).get()
+    trans_num = userQuery.get('transaction_num')
     # Query the transaction log
-    trans_log = db.execute("SELECT * FROM transaction_log WHERE userid = ?\
-                            ORDER BY time DESC", session["user_id"])
+    if trans_num != 0:
+        trans_log_ref = users_ref.document(session["user_id"] + '/transaction_logs')
+        query = trans_log_ref.order_by("time", direction=firestore.Query.DESCENDING)
+        trans_log = query.stream()
     # app.logger.debug(trans_log)
 
     return render_template("history.html", transactions=trans_log)

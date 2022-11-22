@@ -20,11 +20,11 @@
         <tbody>
             {% for transaction in transactions %}
             <tr>
-                <th class="text-start">{{ transaction["symbol"] }}</th>
-                <th class="text-end">{{ transaction["shares_in_out"] }}</th>
-                <th class="text-end">{{ transaction["price"] | usd }}</th>
-                <th class="text-end">{{ transaction["method"] }}</th>
-                <th class="text-end">{{ transaction["time"] }}</th>
+                <th class="text-start">{{ transaction.symbol }}</th>
+                <th class="text-end">{{ transaction.process_amount }}</th>
+                <th class="text-end">{{ transaction.price | usd }}</th>
+                <th class="text-end">{{ transaction.method }}</th>
+                <th class="text-end">{{ transaction.time }}</th>
             </tr>
             {% endfor %}
         </tbody>

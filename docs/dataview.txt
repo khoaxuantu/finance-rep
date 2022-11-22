@@ -3,6 +3,7 @@ users:
     - password(hashed):
     - cash:
     - stocks:
+    - transaction num:
     - transaction logs:
 
 stocks:
@@ -13,7 +14,6 @@ stocks:
 transaction logs:
     - time:
     - method: Buy/Sell
-    - stock:
-        + symbol:
-        + name:
+    - price:
+    - symbol:
     - process amount:

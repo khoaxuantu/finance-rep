@@ -24,7 +24,8 @@ class Users(object):
                 "username": self.username,
                 "password": self.pw,
                 "cash": self.cash,
-                "stocks": self.stocks
+                "stocks": self.stocks,
+                "transaction_num": 0
             }
         except:
             if self.username is None:
