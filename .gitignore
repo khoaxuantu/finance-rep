@@ -10,3 +10,6 @@ flask_session
 
 docker-compose.yml
 finance.db
+
+# ignore key
+firestorekey.json
