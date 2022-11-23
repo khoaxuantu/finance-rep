@@ -1,12 +1,9 @@
 from crypt import methods
 import os
 
-from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session
 from flask_session import Session
 from firebase_admin import credentials, firestore, initialize_app
-from tempfile import mkdtemp
-from sqlalchemy import Float, false, null, true
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from helpers import apology, login_required, lookup, usd, timeformat
