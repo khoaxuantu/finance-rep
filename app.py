@@ -28,7 +28,7 @@ Session(app)
 # db = SQL("sqlite:///finance.db")
 
 # Initialize Firestore DB
-cred = credentials.Certificate('firestorekey.json')
+cred = credentials.Certificate('/keys/firestorekey.json')
 default_app = initialize_app(cred)
 db = firestore.client()
 users_ref = db.collection('users')
