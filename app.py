@@ -426,9 +426,10 @@ def sell():
 @login_required
 def changePassword():
     """Change password"""
-    user_ref = users_ref.document(session["user_id"])
-    user = user_ref.get()
+    
     if request.method == "POST":
+        user_ref = users_ref.document(session["user_id"])
+        user = user_ref.get()
 
         # Get and validate the input password
         current_pwd = request.form.get("password")
