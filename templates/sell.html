@@ -12,7 +12,7 @@
             <select class="form-select mx-auto w-auto" name="symbol">
                 <option disabled selected>Symbol</option>
                 {% for sy in symbols %}
-                    <option value="{{ sy.symbol }}">{{ sy["symbol"] }}</option>
+                    <option value="{{ sy }}">{{ sy }}</option>
                 {% endfor %}
             </select>
         </div>

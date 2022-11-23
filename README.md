@@ -1,22 +1,20 @@
 # My-CS50-finance-2022
 
-I practiced my Flask tutorials by finishing CS50's problem set<br>
-Link to the assignment: https://cs50.harvard.edu/x/2022/psets/9/finance/
-<br><br>
-C$50 Finance is a web app via which you can manage portfolios of stocks. Not only will this tool allow you to check real stocks’ actual prices and portfolios’ values, it will also let you buy (okay, “buy”) and sell (okay, “sell”) stocks by querying 
-[IEX](https://exchange.iex.io/products/market-data-connectivity/) 
-for stocks’ prices.
+The project initially is a [problem set](https://cs50.harvard.edu/x/2022/psets/9/finance/) provided by CS50
+for practicing Flask application with SQLite.
+I got inspired from it so have started a small project trying to replicate [CS50 finance](https://finance.cs50.net).
+But instead of replicating it 100%, I'm trying to extend some new intergrations and making some changes as well. Here
+are the changes that I have made, compared with the web required to made in the problem set.
+- <b>Problem set's web:</b>
 
-## Configuring
-Before getting started on this assignment, we’ll need to register for an API key in order to be able to query IEX’s data. To do so, follow these steps:
-- Visit [iexcloud.io/cloud-login#/register/](https://iexcloud.io/cloud-login#/register/).
-- Select the “Individual” account type, then enter your name, email address, and a password, and click “Create account”.
-- Once registered, scroll down to “Get started for free” and click “Select Start plan” to choose the free plan.
-- Once you’ve confirmed your account via a confirmation email, visit https://iexcloud.io/console/tokens.
-- Copy the key that appears under the <i>Token</i> column (it should begin with <code>pk_</code>).
-- In your terminal window, execute:
-<pre>$ export API_KEY=value</pre>
+    + Database: SQLite
+    + The assignment package only includes <code>static/</code>, <code>templates/</code>, <code>app.py</code>,
+    <code>helpers.py</code>, <code>requirements.txt</code>. There is no deployment in the assignment.
 
-## Running
-Start Flask’s built-in web server:
-- <pre>$ flask run</pre>
+- <b>This project:</b>
+
+    + Database: Firestore
+    + Included all the files in the assignment package, and a new <code>Dockerfile</code> for the deployment.
+    + Deployed via [Cloud Run](https://cloud.google.com/run) in [GCP](https://cloud.google.com)
+    + Added more flash messages as well as a link to stocks catalog so that the clients can interact with the web app
+    easier.
