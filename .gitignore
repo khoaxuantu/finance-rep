@@ -12,4 +12,5 @@ docker-compose.yml
 finance.db
 
 # ignore key
+keys/
 firestorekey.json
