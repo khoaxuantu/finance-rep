@@ -29,6 +29,7 @@ Session(app)
 
 # Initialize Firestore DB
 cred = credentials.Certificate('/keys/firestorekey.json')
+# cred = credentials.Certificate('firestorekey.json')
 default_app = initialize_app(cred)
 db = firestore.client()
 users_ref = db.collection('users')
@@ -244,8 +245,8 @@ def history():
 def login():
     """Log user in"""
 
-    # Forget any user_id
-    session.clear()
+    # Forget any user_id (Do not enable this call due to flash message)
+    # session.clear()
 
     # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
