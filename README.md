@@ -3,7 +3,7 @@
 The project initially is a [problem set](https://cs50.harvard.edu/x/2022/psets/9/finance/) provided by CS50
 for practicing Flask application with SQLite.
 I got inspired from it so have started a small project trying to replicate [CS50 finance](https://finance.cs50.net).
-But instead of replicating it 100%, I'm trying to extend some new intergrations and making some changes as well. Here
+But instead of replicating it 100%, I'm trying to extend some new integrations and making some changes as well. Here
 are the changes that I have made, compared with the web required to made in the problem set.
 - <b>Problem set's web:</b>
 
