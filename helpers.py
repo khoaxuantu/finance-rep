@@ -50,7 +50,7 @@ def lookup(symbol):
 
     # Parse response
     try:
-        # New API return a dict in a list instead of a dict directly
+        # New API return a list containing a dict instead of a dict directly
         quote = response.json()[0]
         return {
             "name": quote["companyName"],
