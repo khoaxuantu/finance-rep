@@ -141,9 +141,9 @@ def index():
             newDict = {}
             symbInfo = lookup(symbol["symbol"])
             if not symbInfo:
-                break
-            newDict["price"]= symbInfo["price"]
-            newDict["hold"] = symbol["shares"] * symbInfo["price"]
+                return apology("exceed number of API calls", 400)
+            newDict["price"]= symbInfo["price"]["raw"]
+            newDict["hold"] = symbol["shares"] * symbInfo["price"]["raw"]
             total.append(newDict["hold"])
 
             userStockVal[symbol["symbol"]] = newDict
@@ -179,7 +179,7 @@ def buy():
             return apology("invalid amount of shares", 400)
 
         # Expected amount of cash to spend
-        expect_spend = shares * symb_lookup["price"]
+        expect_spend = shares * symb_lookup["price"]["raw"]
 
         # Query how much cash the user has
         avail_cash = user_ref.get().get('cash')
@@ -209,7 +209,7 @@ def buy():
                           symb_lookup["symbol"], shares)
 
         # Update transaction log
-        update_logs(transaction, user_ref, "Bought", symb_lookup["price"],
+        update_logs(transaction, user_ref, "Bought", symb_lookup["price"]["raw"],
                     symb_lookup["symbol"], shares)
 
         flash("Buy successfully!")
@@ -385,6 +385,8 @@ def sell():
             return apology("invalid symbol", 400)
         else:
             symb_info = lookup(get_symbol)
+            if not symb_info:
+                return apology("exceed number of API calls", 400)
 
         # Get an amount of shares that the users want to sell
         input_shares = request.form.get("shares")
@@ -406,13 +408,13 @@ def sell():
         # # Update the cash after selling
         # cash_after_sell = recent_cash + (shares_to_sell * symb_info["price"])
         # Update users and stocks info database
-        stock_ref = update_stocks(transaction, user_ref, shares_to_sell * symb_info["price"],
+        stock_ref = update_stocks(transaction, user_ref, shares_to_sell * symb_info["price"]["raw"],
                                   '-', get_symbol, shares_to_sell)
         if stock_ref is not None:
             stock_ref.delete()
 
         # Update transaction log
-        update_logs(transaction, user_ref, 'Sold', symb_info["price"], get_symbol,
+        update_logs(transaction, user_ref, 'Sold', symb_info["price"]["raw"], get_symbol,
                     shares_to_sell)
 
         flash("Sell successfully!")
