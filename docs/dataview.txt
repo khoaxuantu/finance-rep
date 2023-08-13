@@ -7,7 +7,7 @@ users:
     - transaction logs:
 
 stocks:
-    - symbol:
+    - symbol: 
     - name:
     - shares:
 
@@ -17,3 +17,15 @@ transaction logs:
     - price:
     - symbol:
     - process amount:
+
+
+Youtube finance api:
+  - price:
+    - currencySymbol: string
+    - currency: string
+    - symbol: symbol
+    - regularMarketPrice:
+      - raw: number
+      - fmt: string
+    - longName: string
+    - shortName: string

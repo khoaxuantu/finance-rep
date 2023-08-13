@@ -9,6 +9,6 @@
         A share of
         {{ quo_info["name"] }} ({{ quo_info["symbol"] }})
         costs
-        {{ quo_info["price"] | usd }}
+        {{ quo_info["price"]["raw"] | usd }}
     </div>
 {% endblock %}

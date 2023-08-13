@@ -40,10 +40,17 @@ def lookup(symbol):
 
     # Contact API
     try:
-        api_key = os.environ.get("API_KEY")
+        headers = {
+            "X-RapidAPI-Key": os.environ.get("API_KEY"),
+            "X-RapidAPI-Host": "apidojo-yahoo-finance-v1.p.rapidapi.com"
+        }
+        query_string = {"symbol": symbol, "region": "US"}
+
         # url = f"https://cloud.iexapis.com/stable/stock/{urllib.parse.quote_plus(symbol)}/quote?token={api_key}"
-        url = f"https://api.iex.cloud/v1/data/core/quote/{urllib.parse.quote_plus(symbol)}?token={api_key}"
-        response = requests.get(url)
+        # url = f"https://api.iex.cloud/v1/data/core/quote/{urllib.parse.quote_plus(symbol)}?token={api_key}"
+        url = "https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-summary"
+        
+        response = requests.get(url, headers=headers, params=query_string)
         response.raise_for_status()
     except requests.RequestException:
         return None
@@ -51,11 +58,13 @@ def lookup(symbol):
     # Parse response
     try:
         # New API return a list containing a dict instead of a dict directly
-        quote = response.json()[0]
+        quote = response.json()["price"]
         return {
-            "name": quote["companyName"],
-            "price": float(quote["latestPrice"]),
-            "symbol": quote["symbol"]
+            "name": quote["longName"],
+            "shortname": quote["shortName"],
+            "price": quote["regularMarketPrice"],
+            "symbol": quote["symbol"],
+            "currency": quote["currency"]
         }
     except (KeyError, TypeError, ValueError):
         return None
